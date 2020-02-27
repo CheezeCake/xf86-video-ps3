@@ -39,8 +39,6 @@ ps3_drv_la_SOURCES = \
                      ps3_dma.c \
                      ps3_dma.h \
                      ps3_exa.c \
-                     ps3_exa_TCL.c \
                      ps3_gpu.c \
                      ps3_gpu.h \
-                     ps3_notifier.c \
                      ps3_video.c

@@ -59,8 +59,8 @@
 #include <string.h>
 #include <unistd.h>
 
-//#define TRACE() ErrorF("%s\n", __FUNCTION__);
-#define TRACE()
+#define TRACE() ErrorF("%s\n", __FUNCTION__);
+//#define TRACE()
 
 Bool
 PS3AccelGetCtxSurf2DFormatFromPixmap(PixmapPtr pPix, int *fmt_ret)
@@ -150,32 +150,6 @@ static void PS3ExaWaitMarker(ScreenPtr pScreen, int marker)
 	PS3Sync(pPS3);
 }
 
-static inline Bool PS3AccelMemcpyRect(char *dst, const char *src, int height,
-                       int dst_pitch, int src_pitch, int line_len)
-{
-        if ((src_pitch == line_len) && (src_pitch == dst_pitch)) {
-                memcpy(dst, src, line_len*height);
-        } else {
-                while (height--) {
-                        memcpy(dst, src, line_len);
-                        src += src_pitch;
-                        dst += dst_pitch;
-                }
-        }
-
-        return TRUE;
-}
-
-static void *PS3ExaPixmapMap(PixmapPtr pPix)
-{
-        ScrnInfoPtr pScrn = xf86ScreenToScrn(pPix->drawable.pScreen);
-        PS3Ptr pPS3 = PS3PTR(pScrn);
-        void *map;
-
-        map = (void *) pPS3->vram_base + exaGetPixmapOffset(pPix);
-        return map;
-}
-
 static Bool PS3ExaPrepareSolid(PixmapPtr pPixmap,
 			      int   alu,
 			      Pixel planemask,
@@ -205,94 +179,6 @@ static void PS3ExaDoneSolid (PixmapPtr pPixmap)
         PS3Ptr pPS3 = PS3PTR(pScrn);
 
 	TRACE();
-#if 1
-	PS3NotifierReset(pPS3);
-	PS3DmaStart(pPS3, PS3RectangleChannel, 0x104, 1 );
-	PS3DmaNext(pPS3, 0);
-	PS3DmaStart(pPS3, PS3RectangleChannel, 0x100, 1 );
-	PS3DmaNext(pPS3, 0);
-
-	FIRE_RING();
-
-	if (!PS3NotifierWaitStatus(pPS3, 0, 2000))
-		ErrorF("%s: failed\n", __FUNCTION__);
-#endif
-}
-
-static Bool PS3ExaPrepareCopy_2(PixmapPtr pSrcPixmap,
-				PixmapPtr pDstPixmap,
-				int       dx,
-				int       dy,
-				int       alu,
-				Pixel     planemask)
-{
-	ScrnInfoPtr pScrn = xf86ScreenToScrn(pSrcPixmap->drawable.pScreen);
-        PS3Ptr pPS3 = PS3PTR(pScrn);
-        int fmt;
-	int w, h;
-
-	w = pSrcPixmap->drawable.width;
-	h = pSrcPixmap->drawable.height;
-
-//	ErrorF("%s %d %d %d %d %d\n", __FUNCTION__, dx, dy, w, h, alu);
-
-	if (pSrcPixmap->drawable.bitsPerPixel !=
-	    pDstPixmap->drawable.bitsPerPixel) {
-		FALLBACK("different bpp\n");
-		return FALSE;
-	}
-
-	planemask |= ~0 << pDstPixmap->drawable.bitsPerPixel;
-	if (planemask != ~0 || alu != GXcopy) {
-		FALLBACK("not copy or planemask\n");
-		return FALSE;
-	}
-
-	if (!PS3AccelGetCtxSurf2DFormatFromPixmap(pDstPixmap, &fmt))
-                return FALSE;
-        if (!PS3AccelSetCtxSurf2D(pSrcPixmap, pDstPixmap, fmt))
-                return FALSE;
-
-        return TRUE;
-}
-
-static void PS3ExaCopy_2(PixmapPtr pDstPixmap,
-			 int	srcX,
-			 int	srcY,
-			 int	dstX,
-			 int	dstY,
-			 int	width,
-			 int	height)
-{
-	ScrnInfoPtr pScrn = xf86ScreenToScrn(pDstPixmap->drawable.pScreen);
-        PS3Ptr pPS3 = PS3PTR(pScrn);
-
-//	ErrorF("%s from (%d,%d) to (%d,%d) size %dx%d\n", __FUNCTION__,
-//	       srcX, srcY, dstX, dstY, width, height);
-
-	BEGIN_RING(PS3ImageBlitChannel, NV_IMAGE_BLIT_POINT_IN, 3);
-	OUT_RING  ((srcY << 16) | srcX);
-	OUT_RING  ((dstY << 16) | dstX);
-	OUT_RING  ((height  << 16) | width);
-
-	FIRE_RING();
-}
-
-static void PS3ExaDoneCopy_2(PixmapPtr pDstPixmap)
-{
-	ScrnInfoPtr pScrn = xf86ScreenToScrn(pDstPixmap->drawable.pScreen);
-        PS3Ptr pPS3 = PS3PTR(pScrn);
-
-	PS3NotifierReset(pPS3);
-	PS3DmaStart(pPS3, PS3ImageBlitChannel, 0x104, 1 );
-	PS3DmaNext(pPS3, 0);
-	PS3DmaStart(pPS3, PS3ImageBlitChannel, 0x100, 1 );
-	PS3DmaNext(pPS3, 0);
-
-	FIRE_RING();
-
-	if (!PS3NotifierWaitStatus(pPS3, 0, 2000))
-		ErrorF("%s: failed\n", __FUNCTION__);
 }
 
 static CARD32 copy_src_size, copy_src_pitch, copy_src_offset, copy_dx, copy_dy;

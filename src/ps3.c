@@ -462,7 +462,7 @@ PS3ScreenInit(SCREEN_INIT_ARGS_DECL)
 		(pScrn->bitsPerPixel / 8);
 
 	if (pScrn->displayWidth != pScrn->virtualX) {
-		xf86DrvMsg(scrnIndex, X_INFO,
+		xf86DrvMsg(pScrn->scrnIndex, X_INFO,
 			   "Pitch updated to %d after ModeInit\n",
 			   pScrn->displayWidth);
 	}
