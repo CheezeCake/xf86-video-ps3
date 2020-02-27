@@ -101,9 +101,6 @@ static int gpu_get_info(PS3Ptr pPS3)
 	pPS3->vram_size -= (32 * 1024);
 	pPS3->cursor_start = pPS3->vram_size;
 
-	/* GPU hangs if all space is used */
-	pPS3->fifo_size -= 1024;
-
 	ret = 0;
 out:
 	close(fd);
